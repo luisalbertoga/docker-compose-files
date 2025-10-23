@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   mariadb:
     image: mariadb:10.8
@@ -23,10 +21,19 @@ services:
   frappe:
     image: frappe/bench:latest
     command:
-          - bash -c "if [ ! -f /workspace/init.sh ]; then echo 'Downloading init.sh...';"
-          - bash wget -O /workspace/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh;
-          - bash chmod +x /workspace/init.sh;
-          - bash /workspace/init.sh
+      - bash
+      - -c
+      - >
+        if [ ! -f /workspace/init.sh ]; then
+          echo 'Downloading init.sh...';
+          if command -v wget >/dev/null 2>&1; then
+            wget -q -O /workspace/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh;
+          else
+            curl -fsSL -o /workspace/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh;
+          fi;
+          chmod +x /workspace/init.sh;
+        fi;
+        /workspace/init.sh
     
     environment:
       - SHELL=/bin/bash
