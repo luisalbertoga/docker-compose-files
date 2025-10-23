@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   mariadb:
     image: mariadb:10.8
@@ -10,9 +12,13 @@ services:
       MYSQL_ROOT_PASSWORD: 123
     volumes:
       - mariadb-data:/var/lib/mysql
+    networks:
+      - dokploy-network
 
   redis:
     image: redis:alpine
+    networks:
+      - dokploy-network
 
   frappe:
     image: frappe/bench:latest
@@ -22,25 +28,29 @@ services:
     working_dir: /home/frappe
     volumes:
       - .:/workspace
-    ports:
-      - 8000:8000
-      - 9000:9000
-     labels:
+    expose:
+      - "8000:8000"
+      - "9000:9000"
+    labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.helpdesk.rule=Host(`helpdesk.orthanc.fun`)"
-      - "traefik.http.routers.helpdesk.service=whatsapp"
-      - "traefik.http.services.helpdesk.loadbalancer.server.port=4400"
 
+      # Redirect HTTP -> HTTPS
       - "traefik.http.routers.helpdesk-web.rule=Host(`helpdesk.orthanc.fun`)"
       - "traefik.http.routers.helpdesk-web.entrypoints=web"
       - "traefik.http.routers.helpdesk-web.middlewares=helpdesk-redirect"
       - "traefik.http.middlewares.helpdesk-redirect.redirectscheme.scheme=https"
 
+      # HTTPS router
       - "traefik.http.routers.helpdesk.rule=Host(`helpdesk.orthanc.fun`)"
       - "traefik.http.routers.helpdesk.entrypoints=websecure"
       - "traefik.http.routers.helpdesk.tls=true"
-      - "traefik.http.routers.helpdesk.tls.certresolver=letsencrypt" 
+      - "traefik.http.routers.helpdesk.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.helpdesk.service=helpdesk"
 
+      # Service configuration (adjust port if your app listens on a different internal port)
+      - "traefik.http.services.helpdesk.loadbalancer.server.port=8000"
+    networks:
+      - dokploy-network
 
 volumes:
   mariadb-data:
@@ -48,4 +58,3 @@ volumes:
 networks:
   dokploy-network:
     external: true
-    
