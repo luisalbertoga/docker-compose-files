@@ -22,28 +22,36 @@ services:
     image: frappe/bench:latest
     command:
       - bash
-      - -c
-      - >
+      - -lc
+      - |
+        set -eo pipefail
+        # download to a container-writable location
         if [ ! -f /workspace/init.sh ]; then
-          echo 'Downloading init.sh...';
+          echo 'Downloading init.sh...'
           if command -v wget >/dev/null 2>&1; then
-            wget -q -O /tmp/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh;
+            wget -q -O /tmp/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh
           else
-            curl -fsSL -o /tmp/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh;
-          fi;
-          chmod +x /tmp/init.sh;
-          # try to persist into the workspace but don't fail if host FS forbids it
-          cp /tmp/init.sh /workspace/init.sh 2>/dev/null || true;
-        fi;
-        # prefer running the writable /tmp copy so we avoid mount permission issues
-        if [ -x /tmp/init.sh ]; then
-          /tmp/init.sh;
-        elif [ -x /workspace/init.sh ]; then
-          /workspace/init.sh;
-        else
-          echo "Error: init.sh not found or not executable"; exit 1;
+            curl -fsSL -o /tmp/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh
+          fi
+          # best-effort make it executable and try persisting to workspace (ignore errors)
+          chmod +x /tmp/init.sh 2>/dev/null || true
+          cp /tmp/init.sh /workspace/init.sh 2>/dev/null || true
         fi
-    
+
+        # Validate the file is present and not an HTML error page
+        if [ -s /tmp/init.sh ]; then
+          echo "/tmp/init.sh found; first lines:"
+          head -n 5 /tmp/init.sh || true
+          echo "Executing with bash..."
+          bash /tmp/init.sh
+        elif [ -s /workspace/init.sh ]; then
+          echo "/workspace/init.sh found; first lines:"
+          head -n 5 /workspace/init.sh || true
+          echo "Executing with bash..."
+          bash /workspace/init.sh
+        else
+          echo "Error: init.sh not found or empty"; exit 1
+        fi
     environment:
       - SHELL=/bin/bash
     working_dir: /home/frappe
