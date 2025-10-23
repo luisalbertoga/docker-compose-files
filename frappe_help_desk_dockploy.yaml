@@ -24,9 +24,9 @@ services:
     image: frappe/bench:latest
     command:
           - bash -c "if [ ! -f /workspace/init.sh ]; then echo 'Downloading init.sh...';"
-          - wget -O /workspace/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh;
-          - chmod +x /workspace/init.sh;
-          -  bash /workspace/init.sh
+          - bash wget -O /workspace/init.sh https://raw.githubusercontent.com/frappe/helpdesk/develop/docker/init.sh;
+          - bash chmod +x /workspace/init.sh;
+          - bash /workspace/init.sh
     
     environment:
       - SHELL=/bin/bash
